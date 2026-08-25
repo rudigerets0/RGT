@@ -22,9 +22,11 @@
     // De betaalgegevens komen na de # in de URL. Een fragment (#...) wordt
     // NOOIT naar de server gestuurd, dus IBAN/bedrag blijven lokaal.
     (function () {
+      // De payload staat als base64url na de # (blijft lokaal: fragment gaat niet naar server).
       var raw = (location.hash || "").substring(1);
+      raw = raw.replace(/-/g, "+").replace(/_/g, "/");   // base64url -> base64
       var payload = "";
-      try { payload = decodeURIComponent(raw); } catch (e) { payload = raw; }
+      try { payload = atob(raw); } catch (e) { payload = ""; }
       var box = document.getElementById("qr");
       if (!payload) {
         box.innerHTML = '<div id="err">Geen betaalgegevens</div>';
