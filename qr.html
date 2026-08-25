@@ -8,7 +8,10 @@
   html,body{ margin:0; padding:0; height:100%; background:#fff;
              display:flex; align-items:center; justify-content:center;
              font-family:-apple-system,Segoe UI,Roboto,Arial,sans-serif; }
-  #qr{ padding:6px; }
+  /* QR vult de web viewer en blijft vierkant; grootte = grootte van de web viewer */
+  #qr{ width:100%; height:100%; display:flex; align-items:center; justify-content:center; }
+  #qr img, #qr canvas{ width:100%; height:100%; object-fit:contain;
+                       image-rendering:pixelated; }
   #err{ color:#666; font-size:13px; padding:12px; text-align:center; }
 </style>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
@@ -27,10 +30,12 @@
         box.innerHTML = '<div id="err">Geen betaalgegevens</div>';
         return;
       }
+      // Genereer op hoge resolutie voor scherpe print; CSS schaalt hem
+      // vervolgens naar de grootte van de web viewer.
       new QRCode(box, {
         text: payload,
-        width: 220,
-        height: 220,
+        width: 400,
+        height: 400,
         correctLevel: QRCode.CorrectLevel.M   // aanbevolen voor EPC/SEPA-QR
       });
     })();
