@@ -1,0 +1,39 @@
+<!DOCTYPE html>
+<html lang="nl">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Betaal-QR</title>
+<style>
+  html,body{ margin:0; padding:0; height:100%; background:#fff;
+             display:flex; align-items:center; justify-content:center;
+             font-family:-apple-system,Segoe UI,Roboto,Arial,sans-serif; }
+  #qr{ padding:6px; }
+  #err{ color:#666; font-size:13px; padding:12px; text-align:center; }
+</style>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+</head>
+<body>
+  <div id="qr"></div>
+  <script>
+    // De betaalgegevens komen na de # in de URL. Een fragment (#...) wordt
+    // NOOIT naar de server gestuurd, dus IBAN/bedrag blijven lokaal.
+    (function () {
+      var raw = (location.hash || "").substring(1);
+      var payload = "";
+      try { payload = decodeURIComponent(raw); } catch (e) { payload = raw; }
+      var box = document.getElementById("qr");
+      if (!payload) {
+        box.innerHTML = '<div id="err">Geen betaalgegevens</div>';
+        return;
+      }
+      new QRCode(box, {
+        text: payload,
+        width: 220,
+        height: 220,
+        correctLevel: QRCode.CorrectLevel.M   // aanbevolen voor EPC/SEPA-QR
+      });
+    })();
+  </script>
+</body>
+</html>
