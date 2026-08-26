@@ -132,15 +132,21 @@
   document.getElementById("cat").addEventListener("change", toepassen);
 
   fetch("products.json?v=" + Date.now())
-    .then(function(r){ return r.json(); })
-    .then(function(data){
-      PRODUCTEN = data || [];
+    .then(function(r){
+      if(!r.ok){ throw new Error("HTTP " + r.status); }
+      return r.text();
+    })
+    .then(function(txt){
+      // Strip een eventueel BOM-teken en witruimte vóór het parsen (FileMaker-export).
+      txt = txt.replace(/^﻿/, "").trim();
+      PRODUCTEN = JSON.parse(txt);
       vulCategorieen();
       render(PRODUCTEN);
     })
-    .catch(function(){
+    .catch(function(err){
       document.getElementById("grid").innerHTML =
-        '<p style="color:#666;padding:20px">Kon products.json niet laden.</p>';
+        '<p style="color:#a00;padding:20px">Kon products.json niet laden — ' +
+        escapeHtml(String(err && err.message || err)) + '</p>';
     });
 </script>
 </body>
