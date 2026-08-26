@@ -15,27 +15,28 @@
   .sub{ color:var(--muted); font-size:14px; margin-top:2px; }
   .bar{ position:sticky; top:0; background:#fff; padding:12px 18px; border-bottom:1px solid var(--line);
         z-index:5; display:flex; flex-wrap:wrap; gap:10px; align-items:center; }
-  #zoek{ flex:1 1 260px; min-width:180px; padding:10px 14px; font-size:15px;
+  #zoek{ flex:1 1 240px; min-width:170px; padding:10px 14px; font-size:15px;
          border:1px solid var(--line); border-radius:10px; outline:none; }
-  #zoek:focus, #cat:focus{ border-color:var(--brand); }
-  #cat{ padding:10px 12px; font-size:15px; border:1px solid var(--line); border-radius:10px;
-        background:#fff; outline:none; }
+  select{ padding:10px 12px; font-size:15px; border:1px solid var(--line); border-radius:10px;
+          background:#fff; outline:none; }
+  #zoek:focus, select:focus{ border-color:var(--brand); }
   #tel{ color:var(--muted); font-size:13px; }
-  .grid{ display:grid; grid-template-columns:repeat(auto-fill,minmax(210px,1fr));
-         gap:16px; padding:18px; max-width:1200px; margin:0 auto; }
+  .wrap{ max-width:1200px; margin:0 auto; padding:6px 18px 18px; }
+  .sectie{ margin-top:22px; }
+  .sectie > h2{ font-size:17px; color:var(--brand); margin:0 0 10px; padding-bottom:6px;
+                border-bottom:1px solid var(--line); }
+  .grid{ display:grid; grid-template-columns:repeat(auto-fill,minmax(200px,1fr)); gap:16px; }
   .kaart{ border:1px solid var(--line); border-radius:12px; overflow:hidden; background:#fff;
           display:flex; flex-direction:column; }
   .kaart .ph{ aspect-ratio:4/3; background:var(--bg); display:flex; align-items:center; justify-content:center; }
   .kaart .ph img{ width:100%; height:100%; object-fit:contain; cursor:zoom-in; }
   .kaart .ph .none{ color:#bbb; font-size:13px; }
   .kaart .body{ padding:10px 12px 14px; }
-  .kaart h3{ font-size:15px; margin:0 0 4px; color:var(--dark); }
-  .kaart .cat{ display:inline-block; font-size:11px; color:var(--brand); font-weight:600;
+  .kaart h3{ font-size:15px; margin:0; color:var(--dark); }
+  .kaart .cat{ display:inline-block; font-size:11px; color:var(--muted); font-weight:600;
                text-transform:uppercase; letter-spacing:.03em; margin-bottom:4px; }
-  .kaart p{ font-size:13px; color:var(--muted); margin:0; line-height:1.4; }
   #leeg{ text-align:center; color:var(--muted); padding:40px 18px; display:none; }
   footer{ text-align:center; color:var(--muted); font-size:12px; padding:24px 18px 40px; }
-  /* Lightbox */
   #box{ position:fixed; inset:0; background:rgba(20,25,35,.85); display:none;
         align-items:center; justify-content:center; padding:24px; cursor:zoom-out; z-index:20; }
   #box img{ max-width:100%; max-height:100%; border-radius:8px; box-shadow:0 8px 40px rgba(0,0,0,.5); }
@@ -50,11 +51,12 @@
 
 <div class="bar">
   <input id="zoek" type="search" placeholder="Zoek een product…" autocomplete="off">
+  <select id="ass"><option value="">Alle assortimenten</option></select>
   <select id="cat"><option value="">Alle categorieën</option></select>
   <span id="tel"></span>
 </div>
 
-<div class="grid" id="grid"></div>
+<div class="wrap" id="wrap"></div>
 <div id="leeg">Geen producten gevonden.</div>
 <footer>RGtechnics · verhuur</footer>
 
@@ -62,6 +64,9 @@
 
 <script>
   var PRODUCTEN = [];
+  var selA = document.getElementById("ass");
+  var selC = document.getElementById("cat");
+  var wrap = document.getElementById("wrap");
 
   function escapeHtml(s){
     return (s||"").replace(/[&<>"]/g, function(c){
@@ -69,58 +74,68 @@
     });
   }
 
+  function kaart(p){
+    var img = p.img
+      ? '<img class="pimg" src="' + escapeHtml(p.img) + '" alt="" loading="lazy">'
+      : '<span class="none">geen foto</span>';
+    return '<div class="kaart">'
+         +   '<div class="ph">' + img + '</div>'
+         +   '<div class="body">'
+         +     (p.c ? '<span class="cat">' + escapeHtml(p.c) + '</span>' : '')
+         +     '<h3>' + escapeHtml(p.n) + '</h3>'
+         +   '</div>'
+         + '</div>';
+  }
+
   function render(list){
-    var grid = document.getElementById("grid");
-    grid.innerHTML = list.map(function(p, i){
-      var img = p.img
-        ? '<img src="' + p.img + '" alt="" loading="lazy" data-idx="' + i + '">'
-        : '<span class="none">geen foto</span>';
-      return '<div class="kaart">'
-           +   '<div class="ph">' + img + '</div>'
-           +   '<div class="body">'
-           +     (p.c ? '<span class="cat">' + escapeHtml(p.c) + '</span>' : '')
-           +     '<h3>' + escapeHtml(p.n) + '</h3>'
-           +     (p.o ? '<p>' + escapeHtml(p.o) + '</p>' : '')
-           +   '</div>'
-           + '</div>';
+    // Groepeer per assortiment
+    var groepen = {};
+    list.forEach(function(p){
+      var a = p.a || "Overig";
+      (groepen[a] = groepen[a] || []).push(p);
+    });
+    var namen = Object.keys(groepen).sort(function(a,b){ return a.localeCompare(b, "nl"); });
+    wrap.innerHTML = namen.map(function(a){
+      return '<section class="sectie"><h2>' + escapeHtml(a) + '</h2>'
+           +   '<div class="grid">' + groepen[a].map(kaart).join("") + '</div>'
+           + '</section>';
     }).join("");
     document.getElementById("tel").textContent =
       list.length + (list.length === 1 ? " product" : " producten");
     document.getElementById("leeg").style.display = list.length ? "none" : "block";
-    LAST = list;
   }
 
-  var LAST = [];
+  function opties(sel, arr, allLabel){
+    sel.innerHTML = '<option value="">' + allLabel + '</option>'
+      + arr.map(function(v){ return '<option value="' + escapeHtml(v) + '">' + escapeHtml(v) + '</option>'; }).join("");
+  }
+
+  function vulAssortiment(){
+    var set = {}; PRODUCTEN.forEach(function(p){ if(p.a) set[p.a] = 1; });
+    opties(selA, Object.keys(set).sort(function(a,b){ return a.localeCompare(b,"nl"); }), "Alle assortimenten");
+  }
+
+  function vulCategorie(){
+    var a = selA.value, set = {};
+    PRODUCTEN.forEach(function(p){ if((!a || p.a === a) && p.c) set[p.c] = 1; });
+    opties(selC, Object.keys(set).sort(function(a,b){ return a.localeCompare(b,"nl"); }), "Alle categorieën");
+  }
 
   function toepassen(){
     var q = document.getElementById("zoek").value.trim().toLowerCase();
-    var cat = document.getElementById("cat").value;
+    var a = selA.value, c = selC.value;
     render(PRODUCTEN.filter(function(p){
-      var okCat = !cat || p.c === cat;
-      var okQ = !q || ((p.n||"") + " " + (p.o||"")).toLowerCase().indexOf(q) !== -1;
-      return okCat && okQ;
+      return (!a || p.a === a)
+          && (!c || p.c === c)
+          && (!q || ((p.n||"") + " " + (p.c||"") + " " + (p.a||"")).toLowerCase().indexOf(q) !== -1);
     }));
   }
 
-  function vulCategorieen(){
-    var set = {};
-    PRODUCTEN.forEach(function(p){ if(p.c) set[p.c] = true; });
-    var cats = Object.keys(set).sort(function(a,b){ return a.localeCompare(b, "nl"); });
-    var sel = document.getElementById("cat");
-    cats.forEach(function(c){
-      var o = document.createElement("option");
-      o.value = c; o.textContent = c;
-      sel.appendChild(o);
-    });
-  }
-
-  // Lightbox
+  // Lightbox — gebruikt gewoon de src van de aangeklikte foto
   var box = document.getElementById("box"), boxImg = document.getElementById("boxImg");
-  document.getElementById("grid").addEventListener("click", function(e){
-    var t = e.target;
-    if(t.tagName === "IMG" && t.dataset.idx !== undefined){
-      boxImg.src = (LAST[t.dataset.idx] || {}).img || "";
-      box.classList.add("open");
+  wrap.addEventListener("click", function(e){
+    if(e.target.classList && e.target.classList.contains("pimg")){
+      boxImg.src = e.target.src; box.classList.add("open");
     }
   });
   box.addEventListener("click", function(){ box.classList.remove("open"); boxImg.src = ""; });
@@ -129,7 +144,8 @@
   });
 
   document.getElementById("zoek").addEventListener("input", toepassen);
-  document.getElementById("cat").addEventListener("change", toepassen);
+  selA.addEventListener("change", function(){ vulCategorie(); toepassen(); });
+  selC.addEventListener("change", toepassen);
 
   fetch("products.json?v=" + Date.now())
     .then(function(r){
@@ -137,18 +153,18 @@
       return r.arrayBuffer();
     })
     .then(function(buf){
-      // FileMaker exporteert tekst als UTF-16. Detecteer de codering via het BOM.
       var b = new Uint8Array(buf), enc = "utf-8", start = 0;
       if(b[0] === 0xFF && b[1] === 0xFE){ enc = "utf-16le"; start = 2; }
       else if(b[0] === 0xFE && b[1] === 0xFF){ enc = "utf-16be"; start = 2; }
       else if(b[0] === 0xEF && b[1] === 0xBB && b[2] === 0xBF){ enc = "utf-8"; start = 3; }
       var txt = new TextDecoder(enc).decode(b.subarray(start)).replace(/^﻿/, "").trim();
       PRODUCTEN = JSON.parse(txt);
-      vulCategorieen();
+      vulAssortiment();
+      vulCategorie();
       render(PRODUCTEN);
     })
     .catch(function(err){
-      document.getElementById("grid").innerHTML =
+      wrap.innerHTML =
         '<p style="color:#a00;padding:20px">Kon products.json niet laden — ' +
         escapeHtml(String(err && err.message || err)) + '</p>';
     });
