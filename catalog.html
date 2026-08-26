@@ -1,0 +1,147 @@
+<!DOCTYPE html>
+<html lang="nl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>RGtechnics · Productcatalogus</title>
+<style>
+  :root{ --brand:#6FA80D; --dark:#1A2230; --muted:#666; --line:#e5e5e0; --bg:#fafaf7; }
+  *{ box-sizing:border-box; }
+  body{ margin:0; font-family:-apple-system,Segoe UI,Roboto,Helvetica,Arial,sans-serif;
+        color:#222; background:#fff; }
+  header{ padding:20px 18px 14px; border-bottom:3px solid var(--brand); }
+  .logo{ font-size:26px; font-weight:800; color:var(--dark); }
+  .logo span{ color:var(--brand); }
+  .sub{ color:var(--muted); font-size:14px; margin-top:2px; }
+  .bar{ position:sticky; top:0; background:#fff; padding:12px 18px; border-bottom:1px solid var(--line);
+        z-index:5; display:flex; flex-wrap:wrap; gap:10px; align-items:center; }
+  #zoek{ flex:1 1 260px; min-width:180px; padding:10px 14px; font-size:15px;
+         border:1px solid var(--line); border-radius:10px; outline:none; }
+  #zoek:focus, #cat:focus{ border-color:var(--brand); }
+  #cat{ padding:10px 12px; font-size:15px; border:1px solid var(--line); border-radius:10px;
+        background:#fff; outline:none; }
+  #tel{ color:var(--muted); font-size:13px; }
+  .grid{ display:grid; grid-template-columns:repeat(auto-fill,minmax(210px,1fr));
+         gap:16px; padding:18px; max-width:1200px; margin:0 auto; }
+  .kaart{ border:1px solid var(--line); border-radius:12px; overflow:hidden; background:#fff;
+          display:flex; flex-direction:column; }
+  .kaart .ph{ aspect-ratio:4/3; background:var(--bg); display:flex; align-items:center; justify-content:center; }
+  .kaart .ph img{ width:100%; height:100%; object-fit:contain; cursor:zoom-in; }
+  .kaart .ph .none{ color:#bbb; font-size:13px; }
+  .kaart .body{ padding:10px 12px 14px; }
+  .kaart h3{ font-size:15px; margin:0 0 4px; color:var(--dark); }
+  .kaart .cat{ display:inline-block; font-size:11px; color:var(--brand); font-weight:600;
+               text-transform:uppercase; letter-spacing:.03em; margin-bottom:4px; }
+  .kaart p{ font-size:13px; color:var(--muted); margin:0; line-height:1.4; }
+  #leeg{ text-align:center; color:var(--muted); padding:40px 18px; display:none; }
+  footer{ text-align:center; color:var(--muted); font-size:12px; padding:24px 18px 40px; }
+  /* Lightbox */
+  #box{ position:fixed; inset:0; background:rgba(20,25,35,.85); display:none;
+        align-items:center; justify-content:center; padding:24px; cursor:zoom-out; z-index:20; }
+  #box img{ max-width:100%; max-height:100%; border-radius:8px; box-shadow:0 8px 40px rgba(0,0,0,.5); }
+  #box.open{ display:flex; }
+</style>
+</head>
+<body>
+<header>
+  <div class="logo">RG<span>technics</span></div>
+  <div class="sub">Productcatalogus</div>
+</header>
+
+<div class="bar">
+  <input id="zoek" type="search" placeholder="Zoek een product…" autocomplete="off">
+  <select id="cat"><option value="">Alle categorieën</option></select>
+  <span id="tel"></span>
+</div>
+
+<div class="grid" id="grid"></div>
+<div id="leeg">Geen producten gevonden.</div>
+<footer>RGtechnics · verhuur</footer>
+
+<div id="box"><img id="boxImg" src="" alt=""></div>
+
+<script>
+  var PRODUCTEN = [];
+
+  function escapeHtml(s){
+    return (s||"").replace(/[&<>"]/g, function(c){
+      return { "&":"&amp;", "<":"&lt;", ">":"&gt;", '"':"&quot;" }[c];
+    });
+  }
+
+  function render(list){
+    var grid = document.getElementById("grid");
+    grid.innerHTML = list.map(function(p, i){
+      var img = p.img
+        ? '<img src="' + p.img + '" alt="" loading="lazy" data-idx="' + i + '">'
+        : '<span class="none">geen foto</span>';
+      return '<div class="kaart">'
+           +   '<div class="ph">' + img + '</div>'
+           +   '<div class="body">'
+           +     (p.c ? '<span class="cat">' + escapeHtml(p.c) + '</span>' : '')
+           +     '<h3>' + escapeHtml(p.n) + '</h3>'
+           +     (p.o ? '<p>' + escapeHtml(p.o) + '</p>' : '')
+           +   '</div>'
+           + '</div>';
+    }).join("");
+    document.getElementById("tel").textContent =
+      list.length + (list.length === 1 ? " product" : " producten");
+    document.getElementById("leeg").style.display = list.length ? "none" : "block";
+    LAST = list;
+  }
+
+  var LAST = [];
+
+  function toepassen(){
+    var q = document.getElementById("zoek").value.trim().toLowerCase();
+    var cat = document.getElementById("cat").value;
+    render(PRODUCTEN.filter(function(p){
+      var okCat = !cat || p.c === cat;
+      var okQ = !q || ((p.n||"") + " " + (p.o||"")).toLowerCase().indexOf(q) !== -1;
+      return okCat && okQ;
+    }));
+  }
+
+  function vulCategorieen(){
+    var set = {};
+    PRODUCTEN.forEach(function(p){ if(p.c) set[p.c] = true; });
+    var cats = Object.keys(set).sort(function(a,b){ return a.localeCompare(b, "nl"); });
+    var sel = document.getElementById("cat");
+    cats.forEach(function(c){
+      var o = document.createElement("option");
+      o.value = c; o.textContent = c;
+      sel.appendChild(o);
+    });
+  }
+
+  // Lightbox
+  var box = document.getElementById("box"), boxImg = document.getElementById("boxImg");
+  document.getElementById("grid").addEventListener("click", function(e){
+    var t = e.target;
+    if(t.tagName === "IMG" && t.dataset.idx !== undefined){
+      boxImg.src = (LAST[t.dataset.idx] || {}).img || "";
+      box.classList.add("open");
+    }
+  });
+  box.addEventListener("click", function(){ box.classList.remove("open"); boxImg.src = ""; });
+  document.addEventListener("keydown", function(e){
+    if(e.key === "Escape"){ box.classList.remove("open"); boxImg.src = ""; }
+  });
+
+  document.getElementById("zoek").addEventListener("input", toepassen);
+  document.getElementById("cat").addEventListener("change", toepassen);
+
+  fetch("products.json?v=" + Date.now())
+    .then(function(r){ return r.json(); })
+    .then(function(data){
+      PRODUCTEN = data || [];
+      vulCategorieen();
+      render(PRODUCTEN);
+    })
+    .catch(function(){
+      document.getElementById("grid").innerHTML =
+        '<p style="color:#666;padding:20px">Kon products.json niet laden.</p>';
+    });
+</script>
+</body>
+</html>
