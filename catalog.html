@@ -64,6 +64,15 @@
 
 <script>
   var PRODUCTEN = [];
+
+  // Vaste volgorde van de assortimenten (dropdown én kopjes). Niet-vermelde: achteraan, alfabetisch.
+  var ORDER = ["LIGHT","SOUND","VIDEO","DECO","TRUSS&RIGGING","SPECIAL FX","POWER"];
+  function ordIndex(v){ var i = ORDER.indexOf((v||"").toUpperCase()); return i === -1 ? 999 : i; }
+  function ordCompare(a,b){
+    var d = ordIndex(a) - ordIndex(b);
+    return d !== 0 ? d : a.localeCompare(b, "nl");
+  }
+
   var selA = document.getElementById("ass");
   var selC = document.getElementById("cat");
   var wrap = document.getElementById("wrap");
@@ -94,7 +103,7 @@
       var a = p.a || "Overig";
       (groepen[a] = groepen[a] || []).push(p);
     });
-    var namen = Object.keys(groepen).sort(function(a,b){ return a.localeCompare(b, "nl"); });
+    var namen = Object.keys(groepen).sort(ordCompare);
     wrap.innerHTML = namen.map(function(a){
       return '<section class="sectie"><h2>' + escapeHtml(a) + '</h2>'
            +   '<div class="grid">' + groepen[a].map(kaart).join("") + '</div>'
@@ -112,7 +121,7 @@
 
   function vulAssortiment(){
     var set = {}; PRODUCTEN.forEach(function(p){ if(p.a) set[p.a] = 1; });
-    opties(selA, Object.keys(set).sort(function(a,b){ return a.localeCompare(b,"nl"); }), "Alle assortimenten");
+    opties(selA, Object.keys(set).sort(ordCompare), "Alle assortimenten");
   }
 
   function vulCategorie(){
